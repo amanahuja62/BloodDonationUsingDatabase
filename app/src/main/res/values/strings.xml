@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BloodDonation</string>
+    <string name="birthday">Date of Birth</string>
+    <string name="bloodDonation">Want to donate blood? Click on Sign In / Sign Up</string>
+</resources>
