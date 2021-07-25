@@ -46,11 +46,20 @@ public class NeedyActivity extends AppCompatActivity {
         databaseAcceptors.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange( DataSnapshot snapshot) {
+                acceptorList.clear();
                  for(DataSnapshot dataSnapshot : snapshot.getChildren()){
-                     Acceptor acceptor =  snapshot.getValue(Acceptor.class);
-                     if(acceptor.getBloodGroup().equals(donorBloodGroup) )
-                     acceptorList.add(acceptor);
-                     Log.d("asaas",acceptor.getName());
+                     String name =  dataSnapshot.child("name").getValue(String.class);
+                     String imageURL =  dataSnapshot.child("imageURL").getValue(String.class);
+                     String id =  dataSnapshot.child("id").getValue(String.class);
+                     String mobile =  dataSnapshot.child("mobile").getValue(String.class);
+                     String bloodGroup =  dataSnapshot.child("bloodGroup").getValue(String.class);
+                     String address =  dataSnapshot.child("address").getValue(String.class);
+                     System.out.println(name);
+                     Log.d("asaas",bloodGroup);
+
+                     if(bloodGroup.equals(donorBloodGroup) )
+                     acceptorList.add(new Acceptor( imageURL,  name,  address,  mobile,  bloodGroup,  id));
+
                  }
                 myAdapter.setData(acceptorList);
             }

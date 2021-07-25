@@ -1,7 +1,5 @@
 package com.example.blooddonation;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -14,17 +12,29 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+
 import java.util.Calendar;
 
 public class MainActivity2 extends AppCompatActivity {
-   final Calendar myCalendar = Calendar.getInstance();
-   EditText e1,e2,e3,e4,e5;
-   Spinner spinner;
-   String name,address,dob,dateDonation,mobileNo,bloodGroup;
-   DonorsDatabase donorsDatabase;
-   CheckBox checkBox;
-   String[] s = {"O+", "A+","B+","B-","A-","O-","AB"};
-   ArrayAdapter arrayAdapter;
+    final Calendar myCalendar = Calendar.getInstance();
+    EditText e1, e2, e3, e4, e5;
+    Spinner spinner;
+    String name, address, dob, dateDonation, mobileNo, bloodGroup;
+    FirebaseDatabase firebaseDatabase;
+    DatabaseReference databaseReference;
+    CheckBox checkBox;
+    String[] s = {"O+", "A+", "B+", "B-", "A-", "O-", "AB"};
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,7 +46,7 @@ public class MainActivity2 extends AppCompatActivity {
                 myCalendar.set(Calendar.YEAR, year);
                 myCalendar.set(Calendar.MONTH, month);
                 myCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                e3.setText(Integer.toString(dayOfMonth)+"/"+Integer.toString(month+1)+"/"+Integer.toString(year));
+                e3.setText(Integer.toString(dayOfMonth) + "/" + Integer.toString(month + 1) + "/" + Integer.toString(year));
 
             }
         };
@@ -46,7 +56,7 @@ public class MainActivity2 extends AppCompatActivity {
                 myCalendar.set(Calendar.YEAR, year);
                 myCalendar.set(Calendar.MONTH, month);
                 myCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                e4.setText(Integer.toString(dayOfMonth)+"/"+Integer.toString(month+1)+"/"+Integer.toString(year));
+                e4.setText(Integer.toString(dayOfMonth) + "/" + Integer.toString(month + 1) + "/" + Integer.toString(year));
 
             }
         };
@@ -70,7 +80,7 @@ public class MainActivity2 extends AppCompatActivity {
         });
 
 
-      //listener for spinner
+        //listener for spinner
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -86,7 +96,7 @@ public class MainActivity2 extends AppCompatActivity {
 
     }
 
-    public void initialise(){
+    public void initialise() {
         e1 = findViewById(R.id.e21);  // name
         e2 = findViewById(R.id.e22);  // address
         e3 = findViewById(R.id.e23); // date of birth
@@ -94,33 +104,73 @@ public class MainActivity2 extends AppCompatActivity {
         e5 = findViewById(R.id.e25); // mobile no
         checkBox = findViewById(R.id.checkBox); // checkbox
         spinner = findViewById(R.id.spinner);
-        donorsDatabase = new DonorsDatabase(this);
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item,s);
+        firebaseDatabase = FirebaseDatabase.getInstance();
+        databaseReference = firebaseDatabase.getReference("DonorInfo"); // will be used for storing donor details
+
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, s);
         arrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(arrayAdapter);
     }
 
     public void saveDetails(View view) {
-        if(checkBox.isChecked()){
+
+        if (checkBox.isChecked()) {
             name = e1.getText().toString();
             address = e2.getText().toString();
             dob = e3.getText().toString();
             dateDonation = e4.getText().toString();
             mobileNo = e5.getText().toString();
-            if(!donorsDatabase.isPresent(mobileNo)) {
-                donorsDatabase.saveData(name, address, dob, bloodGroup, dateDonation, mobileNo);
-                Toast.makeText(this, "Your Data is saved !!", Toast.LENGTH_SHORT).show();
+            //checking if already signed up with same phone no
+            Query query = databaseReference.orderByChild("mobileNo").equalTo(mobileNo);
+            query.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange( DataSnapshot snapshot) {
+                    if(snapshot.exists()){
+                        e5.setError("Already registered with this phone number !!");
+                    }
+                    else{
+                        addDatatoFirebase(name,address,mobileNo,bloodGroup,dob,dateDonation);
+
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError error) {
+
+                }
+            });
+
+
+        } else {
+            Toast.makeText(this, "Kindly accept the terms and conditions", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+
+
+    private void addDatatoFirebase(String name, String address, String mobile, String bloodGroup, String dob, String dateDonation) {
+        String donorID = databaseReference.push().getKey(); //every donor will have a unique id
+        Donor donor = new Donor(name, address, dob, bloodGroup, dateDonation, mobile, donorID);
+
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                databaseReference.child(donorID).setValue(donor);  // this adds donor's data to realtime database
+                Toast.makeText(MainActivity2.this, "data added", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(MainActivity2.this, NeedyActivity.class);
                 intent.putExtra("donorBloodGroup", bloodGroup);
                 startActivity(intent);
                 finish();
             }
-            else{
-                Toast.makeText(this, "Account with this phone no already exists !!", Toast.LENGTH_SHORT).show();
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(MainActivity2.this, "Fail to add data " + error, Toast.LENGTH_SHORT).show();
             }
-        }
-        else{
-            Toast.makeText(this, "Kindly accept the terms and conditions", Toast.LENGTH_SHORT).show();
-        }
+        });
+
+
     }
 }
