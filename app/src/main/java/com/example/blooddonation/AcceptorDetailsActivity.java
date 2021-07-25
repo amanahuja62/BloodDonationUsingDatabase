@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
+import com.google.firebase.database.DatabaseReference;
+
 import java.util.ArrayList;
 
 public class AcceptorDetailsActivity extends AppCompatActivity {
@@ -12,7 +14,7 @@ public class AcceptorDetailsActivity extends AppCompatActivity {
    String bloodGroup;
    String rowNo;
    int row;
-   AcceptorDatabase acceptorDatabase;
+   DatabaseReference databaseAcceptors;
    ArrayList arrayList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,8 +28,7 @@ public class AcceptorDetailsActivity extends AppCompatActivity {
         rowNo = getIntent().getStringExtra("rowno");
         row = Integer.valueOf(rowNo);
 
-        acceptorDatabase = new AcceptorDatabase(this);
-        arrayList=acceptorDatabase.getAllDetails(bloodGroup,row);
+
 
 
         t1.setText(arrayList.get(0).toString());

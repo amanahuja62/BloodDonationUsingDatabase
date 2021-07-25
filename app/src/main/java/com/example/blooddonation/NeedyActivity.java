@@ -1,6 +1,9 @@
 package com.example.blooddonation;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,40 +14,53 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import java.util.ArrayList;
+import java.util.List;
 
 public class NeedyActivity extends AppCompatActivity {
-    ListView listView;
-    ArrayList arrayList;
+
+
     String donorBloodGroup;
-    AcceptorDatabase acceptorDatabase;
+    RecyclerView recyclerView;
+    DatabaseReference databaseAcceptors;
+    MyAdapter myAdapter;
+    List<Acceptor> acceptorList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_needy);
-        listView = findViewById(R.id.listview);
-        acceptorDatabase = new AcceptorDatabase(this);
+        recyclerView = findViewById(R.id.recyid);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
         donorBloodGroup=getIntent().getStringExtra("donorBloodGroup");
+        databaseAcceptors = FirebaseDatabase.getInstance().getReference("AcceptorInfo");
+        myAdapter = new MyAdapter();
+        acceptorList = new ArrayList<>();
+        recyclerView.setAdapter(myAdapter);
+        databaseAcceptors.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange( DataSnapshot snapshot) {
+                 for(DataSnapshot dataSnapshot : snapshot.getChildren()){
+                     Acceptor acceptor =  snapshot.getValue(Acceptor.class);
+                     if(acceptor.getBloodGroup().equals(donorBloodGroup) )
+                     acceptorList.add(acceptor);
+                     Log.d("asaas",acceptor.getName());
+                 }
+                myAdapter.setData(acceptorList);
+            }
 
-        Log.i("blood group",getIntent().getStringExtra("donorBloodGroup"));
-        arrayList = acceptorDatabase.getNameandAddress(getIntent().getStringExtra("donorBloodGroup"));
-        if(arrayList.size()>=1) {
-            ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayList);
-            listView.setAdapter(arrayAdapter);
+            @Override
+            public void onCancelled( DatabaseError error) {
+                Toast.makeText(NeedyActivity.this, error.toString(), Toast.LENGTH_SHORT).show();
+            }
+        });
 
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    Intent intent = new Intent(NeedyActivity.this, AcceptorDetailsActivity.class);
-                    intent.putExtra("rowno",Integer.toString(position));
-                    intent.putExtra("bloodGroup",donorBloodGroup);
-                    startActivity(intent);
-                }
-            });
-        }
-        else{
-            Toast.makeText(this, "No acceptor with blood group "+getIntent().getStringExtra("donorBloodGroup"), Toast.LENGTH_SHORT).show();
-        }
 
     }
 }
